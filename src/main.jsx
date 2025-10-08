@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import './index.css';
 import TravelDashboard from './dashboard.jsx';
+import Dashboard1 from './components/dashboard1.jsx';
+console.log('[debug] main.jsx imported Dashboard1:', typeof Dashboard1);
 import PolicyBuilder from './policy.jsx';
 import Trips from './trips.jsx';
 import Risk from './risk.jsx';
@@ -19,6 +21,7 @@ function AppRoutes(){
 			<Route path="/" element={<TravelDashboard />} />
 			<Route path="/policy" element={<PolicyBuilder />} />
 			<Route path="/trips" element={<Trips />} />
+			<Route path="/dashboard1" element={<Dashboard1 />} />
 			<Route path="/reports" element={<Reports />} />
 			<Route path="/risk" element={<Risk />} />
 			<Route path="/expense" element={<ExpensePage />} />

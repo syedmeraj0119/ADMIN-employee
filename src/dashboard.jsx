@@ -235,6 +235,16 @@ export default function TravelDashboard() {
               <span className="nav-label">Reports</span>
             </button>
 
+            <button title="Dashboard v2" aria-current={isActive('/dashboard1') ? 'page' : undefined} className={`nav-button ${isActive('/dashboard1') ? 'nav-active' : ''}`} onClick={() => go('/dashboard1')} type="button">
+              <span className="nav-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 3h18v4H3z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M3 11h18v10H3z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+              <span className="nav-label">Dashboard v2</span>
+            </button>
+
             <button title="Documents" aria-current={isActive('/documents') ? 'page' : undefined} className={`nav-button ${isActive('/documents') ? 'nav-active' : ''}`} onClick={() => go('/documents')} type="button">
               <span className="nav-icon" aria-hidden="true">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
