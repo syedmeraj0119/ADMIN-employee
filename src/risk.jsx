@@ -187,14 +187,14 @@ export default function Risk(){
             <div className="text-sm text-gray-500">Global risk map, traveler safety, advisories and emergency workflows</div>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => navigate(-1)} className="px-2 py-1 bg-white border rounded text-sm">← Back</button>
-            <button onClick={()=> { const adv = { id: generateId('adv'), destId: destinations[0].id, title: 'Manual advisory', level: 'Medium', ts: new Date().toISOString(), description: 'Manual advisory created by operator' }; setAdvisories(a => [adv, ...a]); sendNotification('ops@example.com', adv.title, adv.description);} } className="px-3 py-2 bg-purple-700 text-white rounded">Create advisory</button>
-            <button onClick={()=> { const ec = getEmergencyContacts(); if(ec.length===0) alert('No emergency contacts saved'); else alert(JSON.stringify(ec[0], null, 2)); }} className="px-3 py-2 bg-white border rounded">Emergency contacts</button>
+            <button type="button" onClick={() => navigate(-1)} className="px-2 py-1 elevated">← Back</button>
+            <button type="button" onClick={()=> { const adv = { id: generateId('adv'), destId: destinations[0].id, title: 'Manual advisory', level: 'Medium', ts: new Date().toISOString(), description: 'Manual advisory created by operator' }; setAdvisories(a => [adv, ...a]); sendNotification('ops@example.com', adv.title, adv.description);} } className="px-3 py-2 bg-purple-700 text-white rounded">Create advisory</button>
+            <button type="button" onClick={()=> { const ec = getEmergencyContacts(); if(ec.length===0) alert('No emergency contacts saved'); else alert(JSON.stringify(ec[0], null, 2)); }} className="px-3 py-2 elevated">Emergency contacts</button>
           </div>
         </header>
 
         <div className="grid grid-cols-12 gap-6">
-          <div className="col-span-8 bg-white rounded-lg border p-4">
+          <div className="col-span-8 elevated p-4">
             <h3 className="font-semibold mb-3">Risk map</h3>
             <div className="mb-4 text-sm text-gray-500">Color-coded destinations by risk (Low/Medium/High)</div>
             <div style={{height: 360}} className="border rounded overflow-hidden">
@@ -216,7 +216,7 @@ export default function Risk(){
                               <div className="font-medium">Advisories</div>
                               <ul className="mt-1 space-y-1">
                                 {advs.map(a => (
-                                  <li key={a.id} className="text-xs border rounded p-1">
+                                  <li key={a.id} className="text-xs elevated p-1">
                                     <div className="font-semibold">{a.title}</div>
                                     <div className="text-xs text-gray-500">{a.type} • {a.severity}</div>
                                     <div className="text-xs mt-1">{a.description}</div>
@@ -242,16 +242,16 @@ export default function Risk(){
 
             <div className="mt-4 grid grid-cols-3 gap-3">
               {destinations.map(d => (
-                <div key={d.id} className="p-3 border rounded">
+                <div key={d.id} className="p-3 elevated">
                   <div className="flex items-center justify-between">
                     <div className="font-medium">{d.name}</div>
                     <div className="text-sm" style={{color: riskColor(d.risk)}}>{d.risk}</div>
                   </div>
                   <div className="mt-2 text-xs text-gray-500">Adjust risk</div>
                   <div className="mt-2 flex gap-2">
-                    <button onClick={()=> setRisk(d.id, 'Low')} className="px-2 py-1 bg-green-100 text-green-700 rounded text-sm">Low</button>
-                    <button onClick={()=> setRisk(d.id, 'Medium')} className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-sm">Medium</button>
-                    <button onClick={()=> setRisk(d.id, 'High')} className="px-2 py-1 bg-red-100 text-red-700 rounded text-sm">High</button>
+                    <button type="button" onClick={()=> setRisk(d.id, 'Low')} className="px-2 py-1 bg-green-100 text-green-700 rounded text-sm">Low</button>
+                    <button type="button" onClick={()=> setRisk(d.id, 'Medium')} className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-sm">Medium</button>
+                    <button type="button" onClick={()=> setRisk(d.id, 'High')} className="px-2 py-1 bg-red-100 text-red-700 rounded text-sm">High</button>
                   </div>
                 </div>
               ))}
@@ -259,16 +259,16 @@ export default function Risk(){
           </div>
 
           <div className="col-span-4 space-y-4">
-            <div className="bg-white rounded-lg border p-3">
+            <div className="elevated p-3">
               <h3 className="font-semibold mb-2">Advisories</h3>
               <div className="text-xs text-gray-500 mb-2">Auto-alerts and advisories</div>
                 <div className="flex items-start gap-2 mb-2">
-                  <button onClick={()=> setShowAdvForm(s => !s)} className="px-2 py-1 bg-white border rounded text-xs">{showAdvForm ? 'Close form' : 'New advisory'}</button>
+                  <button type="button" onClick={()=> setShowAdvForm(s => !s)} className="px-2 py-1 elevated text-xs">{showAdvForm ? 'Close form' : 'New advisory'}</button>
                   <div className="text-xs text-gray-400">Advisories update risk for destinations. Types: political / weather / health / other.</div>
                 </div>
 
                 { showAdvForm && (
-                  <div className="p-2 border rounded mb-2 bg-gray-50">
+                  <div className="p-2 elevated mb-2">
                     <div className="text-xs text-gray-600 mb-2">Create advisory</div>
                     <div className="grid grid-cols-1 gap-2">
                       <select className="border p-2 text-sm" value={advForm.destId} onChange={(e)=> setAdvForm({...advForm, destId: e.target.value})}>
@@ -288,8 +288,8 @@ export default function Risk(){
                       <input className="border p-2 text-sm" placeholder="Title" value={advForm.title} onChange={(e)=> setAdvForm({...advForm, title: e.target.value})} />
                       <textarea className="border p-2 text-sm" placeholder="Description" value={advForm.description} onChange={(e)=> setAdvForm({...advForm, description: e.target.value})} />
                       <div className="flex gap-2">
-                        <button onClick={()=> { const adv = { id: generateId('adv'), destId: advForm.destId, title: advForm.title || 'Manual advisory', type: advForm.type, severity: advForm.severity, description: advForm.description, ts: new Date().toISOString() }; processAdvisory(adv); setShowAdvForm(false); setAdvForm({ ...advForm, title:'', description:'' }); }} className="px-3 py-2 bg-purple-700 text-white rounded text-sm">Create</button>
-                        <button onClick={()=> setShowAdvForm(false)} className="px-3 py-2 bg-white border rounded text-sm">Cancel</button>
+                        <button type="button" onClick={()=> { const adv = { id: generateId('adv'), destId: advForm.destId, title: advForm.title || 'Manual advisory', type: advForm.type, severity: advForm.severity, description: advForm.description, ts: new Date().toISOString() }; processAdvisory(adv); setShowAdvForm(false); setAdvForm({ ...advForm, title:'', description:'' }); }} className="px-3 py-2 bg-purple-700 text-white rounded text-sm">Create</button>
+                        <button type="button" onClick={()=> setShowAdvForm(false)} className="px-3 py-2 elevated text-sm">Cancel</button>
                       </div>
                     </div>
                   </div>
@@ -298,7 +298,7 @@ export default function Risk(){
                 <div className="max-h-48 overflow-auto space-y-2">
                   {advisories.length === 0 && <div className="text-xs text-gray-400">No advisories</div>}
                   {advisories.map(a => (
-                    <div key={a.id} className="p-2 border rounded text-sm">
+                    <div key={a.id} className="p-2 elevated text-sm">
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="font-medium">{a.title} <span className="text-xs ml-2 px-2 py-0.5 rounded" style={{background: a.severity==='high' ? '#fee2e2' : a.severity==='medium' ? '#fef3c7' : '#ecfdf5'}}>{a.type} • {a.severity}</span></div>
@@ -306,21 +306,21 @@ export default function Risk(){
                         </div>
                       </div>
                       <div className="text-xs text-gray-600 mt-1">{a.description}</div>
-                      <div className="mt-2 flex gap-2">
-                        <button onClick={()=> { sendNotification('ops@example.com', `Acknowledge: ${a.title}`, `Acknowledged advisory ${a.title}`); alert('Acknowledged (demo)'); }} className="px-2 py-1 bg-white border rounded text-xs">Acknowledge</button>
-                        <button onClick={()=> { navigator.clipboard && navigator.clipboard.writeText(a.description); alert('Copied details to clipboard'); }} className="px-2 py-1 bg-white border rounded text-xs">Copy</button>
+                        <div className="mt-2 flex gap-2">
+                        <button type="button" onClick={()=> { sendNotification('ops@example.com', `Acknowledge: ${a.title}`, `Acknowledged advisory ${a.title}`); alert('Acknowledged (demo)'); }} className="px-2 py-1 elevated text-xs">Acknowledge</button>
+                        <button type="button" onClick={()=> { navigator.clipboard && navigator.clipboard.writeText(a.description); alert('Copied details to clipboard'); }} className="px-2 py-1 elevated text-xs">Copy</button>
                       </div>
                     </div>
                   ))}
                 </div>
             </div>
 
-            <div className="bg-white rounded-lg border p-3">
+                <div className="elevated p-3">
               <h3 className="font-semibold mb-2">Traveler Safety</h3>
               <div className="text-xs text-gray-500 mb-2">Live locations (opt-in), SOS, check-ins</div>
               <div className="space-y-2">
                 {travelers.map(t => (
-                  <div key={t.id} className="p-2 border rounded text-sm">
+                  <div key={t.id} className="p-2 elevated text-sm">
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="font-medium">{t.name}</div>
@@ -330,10 +330,10 @@ export default function Risk(){
                     </div>
                     <div className="mt-2 text-xs text-gray-500">Last check-in: {new Date(t.lastCheckIn).toLocaleString()}</div>
                     <div className="mt-2 flex gap-2">
-                      <button onClick={()=> toggleOptIn(t.id)} className="px-2 py-1 bg-white border rounded text-xs">{t.optIn ? 'Disable sharing' : 'Enable sharing'}</button>
-                      <button onClick={()=> checkIn(t.id)} className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Check-in now</button>
-                      <button onClick={()=> triggerSOS(t.id)} className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs">Trigger SOS</button>
-                      <button onClick={()=> escalateForTraveler(t.id)} className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">Escalate</button>
+                      <button type="button" onClick={()=> toggleOptIn(t.id)} className="px-2 py-1 elevated text-xs">{t.optIn ? 'Disable sharing' : 'Enable sharing'}</button>
+                      <button type="button" onClick={()=> checkIn(t.id)} className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Check-in now</button>
+                      <button type="button" onClick={()=> triggerSOS(t.id)} className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs">Trigger SOS</button>
+                      <button type="button" onClick={()=> escalateForTraveler(t.id)} className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">Escalate</button>
                     </div>
                   </div>
                 ))}
@@ -344,7 +344,7 @@ export default function Risk(){
               </div>
             </div>
 
-            <div className="bg-white rounded-lg border p-3">
+            <div className="elevated p-3">
               <h3 className="font-semibold mb-2">Emergency Response</h3>
               <div className="text-xs text-gray-500 mb-2">24/7 helpline & contact directory</div>
               <div className="text-sm">
@@ -356,24 +356,24 @@ export default function Risk(){
                   <input id="ec-phone" placeholder="Phone" className="border rounded p-2 w-full text-sm mb-2" />
                   <input id="ec-notes" placeholder="Notes" className="border rounded p-2 w-full text-sm mb-2" />
                   <div className="flex gap-2">
-                    <button onClick={()=> { const n = document.getElementById('ec-name'); const p = document.getElementById('ec-phone'); const notes = document.getElementById('ec-notes'); if(n && p) { addEmergencyContact(n.value, p.value, notes?.value); n.value=''; p.value=''; if(notes) notes.value=''; } }} className="px-3 py-2 bg-purple-700 text-white rounded text-sm">Save contact</button>
-                    <button onClick={()=> { const ec = getEmergencyContacts(); alert(JSON.stringify(ec,null,2)); }} className="px-3 py-2 bg-white border rounded text-sm">View directory</button>
+                    <button type="button" onClick={()=> { const n = document.getElementById('ec-name'); const p = document.getElementById('ec-phone'); const notes = document.getElementById('ec-notes'); if(n && p) { addEmergencyContact(n.value, p.value, notes?.value); n.value=''; p.value=''; if(notes) notes.value=''; } }} className="px-3 py-2 bg-purple-700 text-white rounded text-sm">Save contact</button>
+                    <button type="button" onClick={()=> { const ec = getEmergencyContacts(); alert(JSON.stringify(ec,null,2)); }} className="px-3 py-2 elevated text-sm">View directory</button>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg border p-3">
+            <div className="elevated p-3">
               <h3 className="font-semibold mb-2">Notifications</h3>
               <div className="text-xs text-gray-500 mb-2">Sent messages & alerts</div>
               <div className="max-h-40 overflow-auto space-y-2 text-sm">
                 { notifications.length === 0 && <div className="text-xs text-gray-400">No notifications</div> }
                 { notifications.map(n => (
-                  <div key={n.id} className="p-2 border rounded">
+                  <div key={n.id} className="p-2 elevated">
                     <div className="font-medium">{n.subject}</div>
                     <div className="text-xs text-gray-400">to {n.to} • {new Date(n.ts).toLocaleString()}</div>
                     <div className="mt-2 flex gap-2">
-                      <a className="text-xs px-2 py-1 bg-white border rounded" href={`mailto:${n.to}?subject=${encodeURIComponent(n.subject)}&body=${encodeURIComponent(n.body)}`} target="_blank" rel="noreferrer">Open</a>
+                      <a className="text-xs px-2 py-1 elevated" href={`mailto:${n.to}?subject=${encodeURIComponent(n.subject)}&body=${encodeURIComponent(n.body)}`} target="_blank" rel="noreferrer">Open</a>
                     </div>
                   </div>
                 )) }

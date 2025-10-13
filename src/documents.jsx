@@ -1,5 +1,8 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import DocSearch from './components/DocSearch';
+import DocGroup from './components/DocGroup';
+import DocPreview from './components/DocPreview';
 
 function uid(prefix='d'){ return `${prefix}_${Date.now()}_${Math.floor(Math.random()*9000+1000)}` }
 function readLS(key, fallback){ try{ const r = localStorage.getItem(key); return r ? JSON.parse(r) : fallback; }catch{ return fallback; } }
@@ -8,6 +11,7 @@ function writeLS(key, v){ try{ localStorage.setItem(key, JSON.stringify(v)); }ca
 
 export default function Documents(){
   const navigate = useNavigate();
+  const [collapsedPanels, setCollapsedPanels] = useState({});
   const [employees, setEmployees] = useState(()=> readLS('td_employees', [{ id:'e1', name:'Alice' }, { id:'e2', name:'Bob' }]));
   const [trips, setTrips] = useState(()=> readLS('td_trips_v2', []));
   const [docs, setDocs] = useState(()=> readLS('td_docs_v1', []));
@@ -17,8 +21,15 @@ export default function Documents(){
   const [reminders, setReminders] = useState(()=> readLS('td_doc_reminders', []));
   const [showSignModal, setShowSignModal] = useState(false);
   const [signTargetDoc, setSignTargetDoc] = useState(null);
+  const [uploadType, setUploadType] = useState('passport');
+  const [uploadExpiry, setUploadExpiry] = useState('');
+  const [uploadNotes, setUploadNotes] = useState('');
   const canvasRef = useRef(null);
   const isDrawing = useRef(false);
+  const [filterText, setFilterText] = useState('');
+  const [sortBy, setSortBy] = useState('newest'); // newest | oldest | expiry
+  const [showExpiringOnly, setShowExpiringOnly] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState(null);
 
   useEffect(()=> writeLS('td_docs_v1', docs), [docs]);
   useEffect(()=> writeLS('td_doc_policies', policies), [policies]);
@@ -88,25 +99,70 @@ export default function Documents(){
   // add simple policy (destination -> required doc types)
   function addPolicy(dest, types){ setPolicies(p => ({ ...p, [dest]: types })); }
 
-  return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Document & Compliance</h1>
-          <div className="text-sm text-gray-500">Store passports, visas, vaccine certs, insurance & validate per policy</div>
-        </div>
-        <div>
-          <button onClick={()=> navigate(-1)} className="px-3 py-1 border rounded">← Back</button>
-        </div>
-      </div>
+  // group documents by type for UI sections
+  const docGroupsByType = useMemo(() => {
+    if(!selectedEmployee) return {};
+    const empDocs = docs.filter(d => d.employeeId === selectedEmployee);
+    const groups = {};
+    empDocs.forEach(d => {
+      const t = d.type || 'other';
+      if(!groups[t]) groups[t] = [];
+      groups[t].push(d);
+    });
+    return groups;
+  }, [docs, selectedEmployee]);
 
-      <div className="grid grid-cols-12 gap-6">
-        <aside className="col-span-3 bg-white rounded border p-3">
-          <h3 className="font-semibold mb-2">Employees</h3>
+  // collapsed state per group (type)
+  const [collapsedGroups, setCollapsedGroups] = useState({});
+  function toggleGroup(type){ setCollapsedGroups(s => ({ ...s, [type]: !s[type] })); }
+
+  // filtered/sorted groups for display
+  const filteredGroups = useMemo(() => {
+    const out = {};
+    Object.entries(docGroupsByType).forEach(([type, items]) => {
+      let list = items.slice();
+      if(filterText){ const f = filterText.toLowerCase(); list = list.filter(d => (d.filename||'').toLowerCase().includes(f) || (d.notes||'').toLowerCase().includes(f)); }
+      if(showExpiringOnly){ const now = Date.now(); const soon = now + 1000*60*60*24*30; list = list.filter(d => d.expiry && new Date(d.expiry).getTime() <= soon); }
+      if(sortBy === 'newest') list.sort((a,b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+      else if(sortBy === 'oldest') list.sort((a,b) => new Date(a.uploadedAt) - new Date(b.uploadedAt));
+      else if(sortBy === 'expiry') list.sort((a,b) => (a.expiry?new Date(a.expiry):0) - (b.expiry?new Date(b.expiry):0));
+      if(list.length) out[type] = list;
+    });
+    return out;
+  }, [docGroupsByType, filterText, sortBy, showExpiringOnly]);
+
+  function openPreview(d){ setPreviewDoc(d); }
+  function closePreview(){ setPreviewDoc(null); }
+
+  // download all docs in a group sequentially
+  async function downloadAllInGroup(type){ const items = filteredGroups[type] || []; for(const d of items){ downloadDoc(d); await new Promise(r=>setTimeout(r,120)); } }
+
+  return (
+    <div className="min-h-screen app-root p-8 font-sans text-gray-800">
+      <div className="flex gap-6 max-w-[1400px] mx-auto">
+        <main className="flex-1">
+          <div className="max-w-[1160px] mx-auto elevated p-6 shadow-lg">
+              <div className="card-header mb-4">
+                <div className="card-title">
+                  <h1 className="text-2xl font-semibold">Document & Compliance</h1>
+                  <div className="card-subtitle">Store passports, visas, vaccine certs, insurance & validate per policy</div>
+                </div>
+                <div className="card-actions">
+                  <button type="button" onClick={()=> navigate(-1)} className="back-btn px-3 py-2 border rounded text-sm">← Back</button>
+                  <button className="card-collapse" onClick={() => setCollapsedPanels(s => ({ ...s, main: !s.main }))}>{collapsedPanels.main ? 'Expand' : 'Collapse'}</button>
+                </div>
+              </div>
+
+            <div className="grid grid-cols-12 gap-6 items-start">
+              <aside className="col-span-3 elevated p-3 self-start">
+          <div className="card-header">
+            <div className="card-title">Employees</div>
+            <div className="card-actions"><button className="card-collapse" onClick={() => setCollapsedPanels(s => ({ ...s, employees: !s.employees }))}>{collapsedPanels.employees ? 'Expand' : 'Collapse'}</button></div>
+          </div>
           <ul className="space-y-2 text-sm">
             {employees.map(e => (
               <li key={e.id}>
-                <button className={`w-full text-left px-2 py-1 rounded ${selectedEmployee===e.id ? 'bg-gray-100':''}`} onClick={()=> setSelectedEmployee(e.id)}>{e.name}</button>
+                <button type="button" className={`w-full text-left px-2 py-1 rounded ${selectedEmployee===e.id ? 'bg-gray-100':''}`} onClick={()=> setSelectedEmployee(e.id)}>{e.name}</button>
               </li>
             ))}
           </ul>
@@ -122,38 +178,61 @@ export default function Documents(){
           </div>
         </aside>
 
-        <main className="col-span-6 bg-white rounded border p-4">
-          <h3 className="font-semibold">Documents</h3>
+  <section className="col-span-6 elevated p-4 self-start">
+          <div className="card-header">
+            <div className="card-title">Documents</div>
+            <div className="card-actions"><button className="card-collapse" onClick={() => setCollapsedPanels(s => ({ ...s, documents: !s.documents }))}>{collapsedPanels.documents ? 'Expand' : 'Collapse'}</button></div>
+          </div>
+          <div className={collapsedPanels.documents ? 'card-body-collapsed' : ''}>
           {!selectedEmployee && <div className="text-sm text-gray-500">Select an employee to manage documents</div>}
           {selectedEmployee && (
             <div>
+              <div className="sticky-card">
+                <DocSearch filterText={filterText} setFilterText={setFilterText} sortBy={sortBy} setSortBy={setSortBy} showExpiringOnly={showExpiringOnly} setShowExpiringOnly={setShowExpiringOnly} />
+              </div>
+              <div className="mt-3">
+                {/* document type summary */}
+                <div className="flex items-center gap-2 text-sm">
+                  {(() => { const empDocs = docs.filter(d=> d.employeeId===selectedEmployee); const counts = empDocs.reduce((acc,d)=> { acc[d.type] = (acc[d.type]||0)+1; return acc; }, {}); return Object.entries(counts).length===0 ? <div className="text-xs text-muted">No documents uploaded</div> : Object.entries(counts).map(([t,c]) => <div key={t} className="px-2 py-1 text-xs rounded bg-gray-100">{t}: {c}</div>); })()}
+                </div>
+              </div>
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <input type="file" id="docfile" className="border p-2 rounded" onChange={(e)=>{ const f = e.target.files && e.target.files[0]; if(!f) return; const type = prompt('Document type (passport/visa/vaccine/insurance/other):', 'passport'); const expiry = prompt('Expiry date (YYYY-MM-DD) or empty:',''); const notes = prompt('Notes (optional)',''); handleFileUpload(f, { employeeId: selectedEmployee, type: type || 'other', expiry: expiry || null, notes }); e.target.value = null; }} />
-                <button className="px-3 py-2 border rounded" onClick={()=>{ const dest = prompt('Destination name to require docs for (e.g., India)'); if(!dest) return; const types = prompt('Required types (comma separated, e.g., passport,visa)'); addPolicy(dest, (types||'').split(',').map(s=>s.trim()).filter(Boolean)); alert('Policy saved'); }}>Add policy</button>
+                <div className="flex gap-2">
+                  <input type="file" id="docfile" className="border p-2 rounded" onChange={(e)=>{ const f = e.target.files && e.target.files[0]; if(!f) return; handleFileUpload(f, { employeeId: selectedEmployee, type: uploadType || 'other', expiry: uploadExpiry || null, notes: uploadNotes || '' }); e.target.value = null; setUploadNotes(''); setUploadExpiry(''); }} />
+                  <select value={uploadType} onChange={e=> setUploadType(e.target.value)} className="border p-2 rounded">
+                    <option value="passport">Passport</option>
+                    <option value="visa">Visa</option>
+                    <option value="vaccine">Vaccine</option>
+                    <option value="insurance">Insurance</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div className="flex gap-2">
+                  <input placeholder="Expiry (YYYY-MM-DD)" value={uploadExpiry} onChange={e=> setUploadExpiry(e.target.value)} className="border p-2 rounded" />
+                  <input placeholder="Notes" value={uploadNotes} onChange={e=> setUploadNotes(e.target.value)} className="border p-2 rounded" />
+                </div>
+                <div>
+                  <button type="button" className="px-3 py-2 border rounded" onClick={()=>{ const dest = prompt('Destination name to require docs for (e.g., India)'); if(!dest) return; const types = prompt('Required types (comma separated, e.g., passport,visa)'); addPolicy(dest, (types||'').split(',').map(s=>s.trim()).filter(Boolean)); alert('Policy saved'); }}>Add policy</button>
+                </div>
               </div>
 
-              <div className="mt-4 space-y-2">
-                {docs.filter(d=> d.employeeId===selectedEmployee).map(d => (
-                  <div key={d.id} className="p-2 border rounded flex items-start justify-between">
-                    <div>
-                      <div className="font-semibold">{d.type} — {d.filename}</div>
-                      <div className="text-xs text-muted">Uploaded {new Date(d.uploadedAt).toLocaleDateString()} {d.expiry ? `• Expires ${new Date(d.expiry).toLocaleDateString()}`:''}</div>
-                      {d.notes && <div className="text-xs mt-1">{d.notes}</div>}
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <button className="px-2 py-1 border rounded text-xs" onClick={()=> downloadDoc(d)}>Download</button>
-                      <button className="px-2 py-1 border rounded text-xs" onClick={()=> { setSignTargetDoc(d.id); setShowSignModal(true); }}>Sign</button>
-                      <button className="px-2 py-1 border rounded text-xs" onClick={()=> setDocs(s => s.filter(x=>x.id!==d.id))}>Delete</button>
-                    </div>
-                  </div>
+              <div className="mt-4 space-y-4">
+                {Object.keys(filteredGroups).length === 0 && <div className="text-xs text-muted">No documents uploaded or match filters</div>}
+                {Object.entries(filteredGroups).map(([type, items]) => (
+                  <DocGroup key={type} type={type} items={items} collapsed={collapsedGroups[type]} onToggle={t=> toggleGroup(t)} onDownloadAll={downloadAllInGroup} onDownload={downloadDoc} onSign={(d)=> { setSignTargetDoc(d.id); setShowSignModal(true); }} onDelete={(d)=> setDocs(s => s.filter(x=>x.id!==d.id))} onPreview={openPreview} />
                 ))}
               </div>
             </div>
           )}
-        </main>
+          </div>
+  </section>
 
-        <aside className="col-span-3 bg-white rounded border p-3">
-          <h3 className="font-semibold">Trips & Validation</h3>
+  <aside className="col-span-3 elevated p-3 self-start">
+          <div className="card-header">
+            <div className="card-title">Trips & Validation</div>
+            <div className="card-actions"><button className="card-collapse" onClick={() => setCollapsedPanels(s => ({ ...s, tripsPanel: !s.tripsPanel }))}>{collapsedPanels.tripsPanel ? 'Expand' : 'Collapse'}</button></div>
+          </div>
+          <div className={collapsedPanels.tripsPanel ? 'card-body-collapsed' : ''}>
           <div className="mt-2">
             <select value={selectedTrip} onChange={e=> setSelectedTrip(e.target.value)} className="w-full border p-2 rounded text-sm">
               <option value="">Select trip (optional)</option>
@@ -173,7 +252,7 @@ export default function Documents(){
                       <div key={d.id} className="flex items-center justify-between text-sm">
                         <div>{d.type} — {d.filename}</div>
                         <div>
-                          <button className="px-2 py-0.5 border rounded text-xs" onClick={()=> attachDocToTrip(d.id, selectedTrip)}>Attach</button>
+                          <button type="button" className="px-2 py-0.5 border rounded text-xs" onClick={()=> attachDocToTrip(d.id, selectedTrip)}>Attach</button>
                         </div>
                       </div>
                     ))}
@@ -195,25 +274,46 @@ export default function Documents(){
               ))}
             </div>
           </div>
+          </div>
         </aside>
       </div>
 
       {showSignModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="fixed inset-0 bg-black/40" onClick={()=> setShowSignModal(false)} />
-          <div className="bg-white p-4 rounded z-60" style={{width:520}}>
+          <div className="elevated p-4 rounded z-60" style={{width:520}}>
             <h4 className="font-semibold">Sign document</h4>
             <div className="mt-2">
               <canvas ref={canvasRef} width={480} height={160} style={{border:'1px solid #ddd', borderRadius:6}} onMouseDown={(e)=>{ isDrawing.current=true; const ctx = canvasRef.current.getContext('2d'); const rect = canvasRef.current.getBoundingClientRect(); ctx.beginPath(); ctx.moveTo(e.clientX-rect.left, e.clientY-rect.top); }} onMouseUp={()=>{ isDrawing.current=false; }} onMouseMove={(e)=>{ if(!isDrawing.current) return; const ctx = canvasRef.current.getContext('2d'); const rect = canvasRef.current.getBoundingClientRect(); ctx.lineTo(e.clientX-rect.left, e.clientY-rect.top); ctx.stroke(); }} />
             </div>
             <div className="mt-3 flex gap-2">
-              <button className="px-3 py-1 border rounded" onClick={()=>{ const c=canvasRef.current; const ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height); }}>Clear</button>
-              <button className="px-3 py-1 bg-purple-600 text-white rounded" onClick={()=>{ const c=canvasRef.current; const data=c.toDataURL('image/png'); if(signTargetDoc){ setDocs(s=> s.map(d => d.id===signTargetDoc ? ({ ...d, signed:true, signature:data, signedAt: new Date().toISOString() }) : d)); } setShowSignModal(false); setSignTargetDoc(null); }}>Save signature</button>
-              <button className="px-3 py-1 border rounded" onClick={()=> { setShowSignModal(false); setSignTargetDoc(null); }}>Cancel</button>
+              <button type="button" className="px-3 py-1 border rounded" onClick={()=>{ const c=canvasRef.current; const ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height); }}>Clear</button>
+              <button type="button" className="px-3 py-1 bg-purple-600 text-white rounded" onClick={()=>{ const c=canvasRef.current; const data=c.toDataURL('image/png'); if(signTargetDoc){ setDocs(s=> s.map(d => d.id===signTargetDoc ? ({ ...d, signed:true, signature:data, signedAt: new Date().toISOString() }) : d)); } setShowSignModal(false); setSignTargetDoc(null); }}>Save signature</button>
+              <button type="button" className="px-3 py-1 border rounded" onClick={()=> { setShowSignModal(false); setSignTargetDoc(null); }}>Cancel</button>
             </div>
           </div>
         </div>
       )}
+      {previewDoc && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/50" onClick={closePreview} />
+          <div className="elevated p-4 rounded z-70 bg-white max-w-[80%] max-h-[80%] overflow-auto">
+            <div className="flex items-center justify-between mb-2">
+              <div className="font-semibold">{previewDoc.filename}</div>
+              <div>
+                <button className="px-2 py-1 border rounded mr-2" onClick={()=> downloadDoc(previewDoc)}>Download</button>
+                <button className="px-2 py-1 border rounded" onClick={closePreview}>Close</button>
+              </div>
+            </div>
+            <div>
+              { (previewDoc.dataUrl || '').startsWith('data:image/') ? <img src={previewDoc.dataUrl} alt={previewDoc.filename} style={{maxWidth:'100%'}}/> : <div className="text-sm">Preview not available for this file type.</div> }
+            </div>
+          </div>
+        </div>
+      )}
+        </div>
+      </main>
     </div>
+  </div>
   );
 }

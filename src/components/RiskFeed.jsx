@@ -23,14 +23,14 @@ export default function RiskFeed({ pollInterval = 15000 }){
   }, [pollInterval]);
 
   return (
-    <div className="risk-feed bg-white rounded border p-3">
+    <div className="risk-feed elevated p-3">
       <div className="flex items-center justify-between mb-3">
         <div className="text-sm font-semibold">Real-time risk feed</div>
         <div className="text-xs text-gray-500">{lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : 'Loading...'}</div>
       </div>
       <div className="space-y-2 max-h-48 overflow-auto">
         {items.map(it => (
-          <div key={it.id} className="p-2 border rounded hover:bg-gray-50">
+          <div key={it.id} className="p-2 elevated hover:bg-gray-50">
             <div className="flex items-start justify-between">
               <div>
                 <div className="text-sm font-medium">{it.summary}</div>

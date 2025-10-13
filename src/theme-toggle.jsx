@@ -6,6 +6,7 @@ const THEMES = [
   { id: 'purple', label: 'Purple', accent: '#7c3aed', bg: '#f5f3ff' },
   { id: 'ocean', label: 'Ocean', accent: '#06b6d4', bg: '#e6f6ff' },
   { id: 'sunset', label: 'Sunset', accent: '#f97316', bg: '#fff7ed' },
+  { id: 'neon', label: 'Neon', accent: '#7C5CFF', bg: '#0B1020' },
 ];
 
 export default function ThemeToggle(){
@@ -34,7 +35,7 @@ export default function ThemeToggle(){
 
   return (
     <div className="relative" ref={ref}>
-      <button
+      <button type="button"
         aria-haspopup="true"
         aria-expanded={open}
         onClick={() => setOpen(s => !s)}
@@ -46,11 +47,11 @@ export default function ThemeToggle(){
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-44 bg-white border rounded shadow-lg z-50 p-2">
+        <div className="absolute right-0 mt-2 w-44 elevated z-50 p-2">
           <div className="text-xs text-gray-500 mb-2">Select theme</div>
           <div className="grid grid-cols-1 gap-2">
             {THEMES.map(t => (
-              <button key={t.id} onClick={() => choose(t.id)} className={`flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-50 ${t.id === theme ? 'ring-2 ring-offset-1 ring-purple-300' : ''}`}>
+              <button key={t.id} type="button" onClick={() => choose(t.id)} className={`flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-50 ${t.id === theme ? 'ring-2 ring-offset-1 ring-purple-300' : ''}`}>
                 <span className="w-5 h-5 rounded-full" style={{ background: t.accent, boxShadow: 'inset 0 0 0 2px rgba(255,255,255,0.15)' }} />
                 <div className="flex-1 text-left">
                   <div className="text-sm font-medium">{t.label}</div>

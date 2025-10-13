@@ -1,4 +1,17 @@
 {
     "editor.stickyTabStops": true,
-    "editor.useTabStops": true
+    "editor.useTabStops": true,
+    "sqltools.connections": [
+        {
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 5432,
+            "driver": "PostgreSQL",
+            "name": "postgres",
+            "group": "Admin",
+            "database": "Admin",
+            "username": "Back@123"
+        }
+    ]
 }

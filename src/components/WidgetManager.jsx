@@ -21,7 +21,7 @@ export default function WidgetManager({ onChange, initial }){
   }
 
   return (
-    <div className="widget-manager bg-white rounded border p-3">
+    <div className="widget-manager elevated p-3">
       <div className="flex items-center justify-between mb-3">
         <div className="text-sm font-semibold">Widget configuration</div>
         <div className="text-xs text-gray-500">Saved locally</div>

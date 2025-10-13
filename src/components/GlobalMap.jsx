@@ -12,7 +12,7 @@ export default function GlobalMap({ locations = [], width = '100%', height = 320
   }, []);
 
   return (
-    <div className="global-map bg-white rounded border p-1" style={{ minHeight: `${height}px` }}>
+    <div className="global-map elevated p-1" style={{ minHeight: `${height}px` }}>
       <div className="text-sm font-semibold mb-2 px-3">Global travel map</div>
       <div style={{ width: width, height: height }}>
         <MapContainer center={center} zoom={2} scrollWheelZoom={false} style={{ width: '100%', height: '100%', borderRadius: 8 }}>
