@@ -18,6 +18,7 @@ function writeJSON(name, v){ const p = path.join(DATA_DIR, name); fs.writeFileSy
 
 const upload = multer({ dest: UPLOADS_DIR, limits: { fileSize: 10 * 1024 * 1024 } });
 const jwt = require('jsonwebtoken');
+const { body, validationResult } = require('express-validator');
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
 function authenticate(req,res,next){
@@ -29,6 +30,14 @@ function authenticate(req,res,next){
     req.user = payload;
     return next();
   }catch(e){ return res.status(401).json({ error: 'invalid token' }); }
+}
+
+function handleValidation(req,res,next){
+  const errors = validationResult(req);
+  if(!errors.isEmpty()){
+    return res.status(400).json({ errors: errors.array().map(e => ({ field: e.param, msg: e.msg })) });
+  }
+  next();
 }
 
 const app = express();
@@ -58,19 +67,25 @@ app.get('/api/policies', (req,res) => {
 });
 
 // Create trip
-app.post('/api/trips', authenticate, (req,res) => {
-  const body = req.body || {};
-  if(!body.requester || !body.destination || !body.start) return res.status(400).json({ error: 'requester, destination and start are required' });
-  const trips = readJSON('trips.json');
-  const id = 'trip_' + Date.now();
-  const newTrip = { id, status: 'pending', createdAt: new Date().toISOString(), timeline: [{ ts: new Date().toISOString(), status: 'requested', user: req.user?.email || body.requester?.email || 'unknown' }], ...body };
-  trips.unshift(newTrip);
-  writeJSON('trips.json', trips);
-  // notify ops
-  const notif = { id: 'notif_' + Date.now(), to: 'ops@example.com', subject: `New trip request: ${body.destination}`, body: `Trip ${id} requested by ${body.requester?.name || body.requester}`, ts: new Date().toISOString() };
-  const notifs = readJSON('notifications.json'); notifs.unshift(notif); writeJSON('notifications.json', notifs);
-  res.status(201).json({ id, status: 'pending' });
-});
+app.post('/api/trips', authenticate,
+  body('destination').isString().trim().notEmpty().withMessage('destination is required'),
+  body('start').isISO8601().withMessage('start must be a date (YYYY-MM-DD)'),
+  body('requester.name').optional().isString(),
+  body('requester.email').optional().isEmail().withMessage('requester.email must be valid'),
+  handleValidation,
+  (req,res) => {
+    const body = req.body || {};
+    const trips = readJSON('trips.json');
+    const id = 'trip_' + Date.now();
+    const newTrip = { id, status: 'pending', createdAt: new Date().toISOString(), timeline: [{ ts: new Date().toISOString(), status: 'requested', user: req.user?.email || body.requester?.email || 'unknown' }], ...body };
+    trips.unshift(newTrip);
+    writeJSON('trips.json', trips);
+    // notify ops
+    const notif = { id: 'notif_' + Date.now(), to: 'ops@example.com', subject: `New trip request: ${body.destination}`, body: `Trip ${id} requested by ${body.requester?.name || body.requester}`, ts: new Date().toISOString() };
+    const notifs = readJSON('notifications.json'); notifs.unshift(notif); writeJSON('notifications.json', notifs);
+    res.status(201).json({ id, status: 'pending' });
+  }
+);
 
 // Attach file to trip (multipart)
 app.post('/api/trips/:id/attachments', authenticate, upload.array('files', 6), (req,res) => {
@@ -107,12 +122,16 @@ app.post('/api/documents/:id/sign', authenticate, (req,res) => {
 });
 
 // Create expense
-app.post('/api/expenses', authenticate, (req,res) => {
-  const body = req.body || {};
-  if(!body.employeeId || !body.amount) return res.status(400).json({ error: 'employeeId and amount required' });
-  const ex = readJSON('expenses.json'); const id = 'exp_' + Date.now(); const rec = { id, ...body, createdAt: new Date().toISOString(), status: 'submitted' }; ex.unshift(rec); writeJSON('expenses.json', ex);
-  res.status(201).json(rec);
-});
+app.post('/api/expenses', authenticate,
+  body('employeeId').isString().notEmpty().withMessage('employeeId required'),
+  body('amount').isFloat({ gt: 0 }).withMessage('amount must be a number > 0'),
+  handleValidation,
+  (req,res) => {
+    const body = req.body || {};
+    const ex = readJSON('expenses.json'); const id = 'exp_' + Date.now(); const rec = { id, ...body, createdAt: new Date().toISOString(), status: 'submitted' }; ex.unshift(rec); writeJSON('expenses.json', ex);
+    res.status(201).json(rec);
+  }
+);
 
 // Upload receipt for expense
 app.post('/api/expenses/:id/receipt', authenticate, upload.single('receipt'), (req,res) => {
